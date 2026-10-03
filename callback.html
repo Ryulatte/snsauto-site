@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>SNSauto — 認証の戻り先</title>
+  <style>body{font-family:system-ui,sans-serif;max-width:700px;margin:48px auto;padding:0 24px;line-height:1.8;color:#172b4d}textarea{width:100%;box-sizing:border-box;height:130px}button{padding:12px 20px;margin:16px 0;font-size:16px}</style>
+</head>
+<body>
+  <h1>SNSauto 認証の戻り先</h1>
+  <p id="status" role="status">認証結果を確認しています。</p>
+  <div id="result" hidden>
+    <p>下のボタンで認証URLをコピーし、PCの黒い認証画面へ貼り付けてEnterを押してください。スマホの場合は、このページで認証をやり直さず、PCで認証を進めてください。</p>
+    <button type="button" id="copy">認証URLをコピー</button>
+    <label for="url">コピーできない場合は、下の欄を選択してコピーしてください。</label>
+    <textarea id="url" readonly spellcheck="false" autocomplete="off"></textarea>
+    <p><strong>このURLをチャットやGitHubへ貼らないでください。</strong> 一時的な認証コードが含まれます。</p>
+  </div>
+  <p>このページは投稿を行いません。コードとstateの検証・トークン交換はPC側で行います。ページから外部への通信や秘密情報の保存は行いません。</p>
+  <script>
+    (() => {
+      const callback = window.location.href;
+      const query = new URLSearchParams(window.location.search);
+      // Remove the code from the visible address/history before any user interaction.
+      window.history.replaceState(null, '', window.location.pathname);
+      const status = document.getElementById('status');
+      if (query.has('error')) {
+        status.textContent = '認証が拒否されたか、取り消されました。PCの認証プログラムからやり直してください。';
+        return;
+      }
+      if (!query.get('code') || !query.get('state')) {
+        status.textContent = '認証プログラムから開いてください。このページだけを開いても認証はできません。';
+        return;
+      }
+      status.textContent = '認証応答を受け取りました。PC側での確認はまだ完了していません。';
+      const field = document.getElementById('url');
+      field.value = callback;
+      document.getElementById('result').hidden = false;
+      document.getElementById('copy').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(callback);
+          status.textContent = 'コピーしました。PCの認証画面へ貼り付けてください。';
+        } catch (_) {
+          field.focus(); field.select();
+          status.textContent = '下の欄をCtrl＋Cでコピーしてください。';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
